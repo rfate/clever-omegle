@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 import time
 import re
 import cleverbot
@@ -9,10 +10,17 @@ def log(val):
   with open("log.txt", 'a') as f:
     f.write("%f: %s\n" % (time.time(), val))
 
+parser = argparse.ArgumentParser()
+parser.parse_args()
+
 while True:
   log("*****Conversation Start*****")
   cb = cleverbot.Session()
   om = Omegle()
+
+  def send(message):
+    log("Cleverbot: " + message)
+    om.send_msg(message)
 
   def debug(obj, ev):
     print "DEBUG: " + ev
@@ -28,9 +36,9 @@ while True:
       except cleverbot.ServerFullError:
         print "DEBUG: cleverbot.ServerFullError"
         continue
-    log("Cleverbot: " + resp)
+    
     if om.connected and len(resp) > 0:
-        om.send_msg(resp)
+      send(resp)
 
   om.connect("message-received", recv)
   om.connect("debug", debug)
