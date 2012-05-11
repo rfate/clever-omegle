@@ -49,6 +49,7 @@ class Omegle(object):
             self.emit("debug", "Stranger disconnected.")
             return
           elif event[0] in ("typing", "stoppedTyping"):
+            self.emit("typing", event[0] == "typing")
             self.emit("event-received", event)
           elif event[0] == "gotMessage":
             self.emit("event-received", event[1])
