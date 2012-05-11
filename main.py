@@ -5,13 +5,16 @@ import re
 import cleverbot
 from pyomegle import Omegle
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverbot'", default="captain howdy")
+parser.add_argument("-d", "--debug", help="enable debug messages", action="store_true")
+parser.add_argument("-i", "--intro", help="message to be sent upon connecting")
+args = parser.parse_args()
+
 def log(val):
   print val
   with open("log.txt", 'a') as f:
     f.write("%f: %s\n" % (time.time(), val))
-
-parser = argparse.ArgumentParser()
-parser.parse_args()
 
 while True:
   log("*****Conversation Start*****")
@@ -19,11 +22,14 @@ while True:
   om = Omegle()
 
   def send(message):
-    log("Cleverbot: " + message)
+    log(args.name + ": " + message)
     om.send_msg(message)
 
   def debug(obj, ev):
-    print "DEBUG: " + ev
+    if args.debug:
+      print "DEBUG: " + ev
+    if ev == "Connected." and args.intro:
+      send(args.intro)
 
   def recv(obj, ev):
     log("Stranger: " + ev)
@@ -31,7 +37,7 @@ while True:
       try:
         om.send_typing_event()
         resp = cb.Ask(ev)
-        resp = re.sub("cleverbot", "Tim the Enchanter", resp, re.IGNORECASE)
+        resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
         break
       except cleverbot.ServerFullError:
         print "DEBUG: cleverbot.ServerFullError"
