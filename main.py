@@ -3,7 +3,7 @@ import argparse
 import time
 import re
 import cleverbot
-from pyomegle import Omegle
+from omegle import Omegle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverbot'", default="captain howdy")
@@ -21,17 +21,19 @@ while True:
   cb = cleverbot.Session()
   om = Omegle()
 
+  def connected(ev):
+    if args.intro:
+      send(args.intro)
+
   def send(message):
     log("You: " + message)
     om.send_msg(message)
 
-  def debug(obj, ev):
+  def debug(ev):
     if args.debug:
       print "DEBUG: " + ev
-    if ev == "Connected." and args.intro:
-      send(args.intro)
 
-  def recv(obj, ev):
+  def recv(ev):
     log("Stranger: " + ev)
     while True:
       try:
@@ -46,8 +48,9 @@ while True:
     if om.connected and len(resp) > 0:
       send(resp)
 
+  om.connect("connected", connected)
   om.connect("message-received", recv)
   om.connect("debug", debug)
 
-  om.start(threaded = False)
+  om.start()
   log("*****Conversation End*****")

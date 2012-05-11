@@ -1,32 +1,23 @@
 #!/usr/bin/env python
-
-# Modified version of omeglecon.py
-# http://code.google.com/p/pyomegle/issues/detail?id=4
-
 from urllib2 import urlopen, HTTPError
 import json
-import thread
 import Queue
-import gobject
 
-gobject.threads_init()
-
-class Omegle(gobject.GObject):
-
-  __gsignals__ = {
-    # Emitted on every event
-    "event-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING, )),
-    # Emitted every time a message is received
-    "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING, )),
-    "debug": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING, )),
-  }
+class Omegle(object):
 
   def __init__(self):
-    gobject.GObject.__init__(self)
     self.event_queue = Queue.Queue()
     self.connected = False
+    self.callbacks = {}
 
-  def start(self, threaded = True):
+  def connect(self, type, callback):
+    self.callbacks[type] = callback;
+
+  def emit(self, type, data):
+    if self.callbacks.has_key(type):
+      self.callbacks[type](data)
+
+  def start(self):
     self.id = json.loads(urlopen("http://promenade.omegle.com/start","").read())
     self.emit("debug", "Got ID: %s - waiting for connection..." % self.id)
     while not self.connected:
@@ -38,14 +29,12 @@ class Omegle(gobject.GObject):
         elif event == ["connected"]:
           self.connected = True
           self.emit("debug", "Connected.")
+          self.emit("connected", True)
           break
     for event in events:
       self.event_queue.put(event) # Queue extra remaining events in case we got them
 
-    if threaded:
-      thread.start_new_thread(self.__event_listener, ())
-    else:
-      self.__event_listener()
+    self.__event_listener()
 
   def __event_listener(self):
     while self.connected:
@@ -102,26 +91,3 @@ class Omegle(gobject.GObject):
 
   def __del__(self):
     self.disconnect()
-
-#############################################################################
-
-if __name__ == "__main__":
-  omegle = Omegle()
-
-  def print_event(obj, ev):
-    print ev
-  omegle.connect("event-received", print_event)
-  def print_debug(obj, ev):
-    print "DEBUG: " + ev
-  omegle.connect("debug", print_debug)
-
-  omegle.start()
-
-  while omegle.connected:
-    try:
-      msg = str(raw_input("> "))
-    except:
-      omegle.disconnect()
-    if omegle.connected and len(msg) > 0:
-      omegle.send_msg(msg)
-
