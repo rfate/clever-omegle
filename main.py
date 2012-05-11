@@ -22,7 +22,7 @@ while True:
   om = Omegle()
 
   def send(message):
-    log(args.name + ": " + message)
+    log("You: " + message)
     om.send_msg(message)
 
   def debug(obj, ev):
