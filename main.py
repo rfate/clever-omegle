@@ -22,7 +22,7 @@ quirks = [
     ["I", "1"],
     ["E", "3"],
     ["A", "4"],
-    ["([^\.])\.[$\s]", '\\1 '], # remove lone periods
+    ["([^\.])\.[$\s]?", '\\1 '], # remove lone periods
     [",", ""],
     ["'S", "S"],
     # emoticons
@@ -67,13 +67,14 @@ try:
 
     def typing(ev):
       is_typing = ev
-      print "Stranger %s typing." % "started" if ev else "stopped"
+      print "Stranger %s typing." % ("started" if ev else "stopped")
 
     def connected(ev):
       if args.intro:
         send(args.intro)
 
     def send(message):
+      message = quirkify(message)
       log("You: " + message)
       om.send_msg(message)
 
@@ -85,11 +86,12 @@ try:
       log("Stranger: " + ev)
       while True:
         try:
+          if is_typing:
+            continue
+
           om.send_typing_event()
           resp = cb.Ask(ev)
           resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
-
-          resp = quirkify(resp)
           break
         except cleverbot.ServerFullError:
           print "DEBUG: cleverbot.ServerFullError"
