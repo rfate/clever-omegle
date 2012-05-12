@@ -22,18 +22,18 @@ quirks = [
     ["I", "1"],
     ["E", "3"],
     ["A", "4"],
-    ["([^\.])\.[$\s]?", '\\1 '], # remove lone periods
+    ["([^\.])\.($|[^\.]|\b)", '\\1 '], # remove lone periods
     [",", ""],
     ["'S", "S"],
     # emoticons
-    [":\)", ">:]"],
-    ["\(:", ">:]"],
-    ["\):", ">:["],
-    [":\(", ">:["],
-    [":D",  ">:D"],
+    ["\):", ":("], # flip
+    ["\(:", ":)"],
+    [":\)", ":]"], # squarify
+    [":\(", ":["],
+    [":(3|O|P|D|\[|\])", ">:\\1"], # da hornz
     ["D:",  "D:<"],
 
-    ["LOL", "H3H3"],
+    ["\b(HA|HE|AH)+\b", "H3H3"],
   ],
   [
     ["([\w\s])([\w\s]?)", "\\1".upper()+"\\2"],
@@ -55,7 +55,8 @@ def quirkify(message):
 
 if args.test:
   print quirkify("Hello. :) :( (: ): :D D:")
-  print quirkify("Hello...")
+  print quirkify("Hello... :P :3 :O")
+  print quirkify("lol lolololol hehehehe hahahaha")
   exit()
 
 try:
@@ -87,6 +88,7 @@ try:
       while True:
         try:
           if is_typing:
+            print "SHOULD STOP!"
             continue
 
           om.send_typing_event()
