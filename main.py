@@ -10,6 +10,7 @@ parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverb
 parser.add_argument("-d", "--debug", help="enable debug messages", action="store_true")
 parser.add_argument("-i", "--intro", help="message to be sent upon connecting")
 parser.add_argument("-q", "--quirkset", help="set of typing quirks to use", type=int, default=0)
+parser.add_argument("--show-typing", help="display message when strager begins/stops typing", action="store_true")
 
 parser.add_argument("-t", "--test", help="whatever wacky shit I'm trying to do at the moment", action="store_true")
 args = parser.parse_args()
@@ -68,7 +69,8 @@ try:
 
     def typing(ev):
       is_typing = ev
-      print "Stranger %s typing." % ("started" if ev else "stopped")
+      if args.show_typing:
+        print "Stranger %s typing." % ("started" if ev else "stopped")
 
     def connected(ev):
       if args.intro:
