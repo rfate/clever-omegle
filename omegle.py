@@ -2,6 +2,7 @@
 from urllib2 import urlopen, HTTPError
 import json
 import Queue
+import thread
 
 class Omegle(object):
 
@@ -17,7 +18,7 @@ class Omegle(object):
     if self.callbacks.has_key(type):
       self.callbacks[type](data)
 
-  def start(self):
+  def start(self, threaded = False):
     self.id = json.loads(urlopen("http://promenade.omegle.com/start","").read())
     self.emit("debug", "Got ID: %s - waiting for connection..." % self.id)
     while not self.connected:
@@ -34,7 +35,10 @@ class Omegle(object):
     for event in events:
       self.event_queue.put(event) # Queue extra remaining events in case we got them
 
-    self.__event_listener()
+    if threaded:
+      thread.start_new_thread(self.__event_listener, ())
+    else:
+      self.__event_listener()
 
   def __event_listener(self):
     while self.connected:
