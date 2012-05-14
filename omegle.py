@@ -30,7 +30,7 @@ class Omegle(object):
         elif event == ["connected"]:
           self.connected = True
           self.emit("debug", "Connected.")
-          self.emit("connected", True)
+          self.emit("connection_state", True)
           break
     for event in events:
       self.event_queue.put(event) # Queue extra remaining events in case we got them
@@ -51,6 +51,7 @@ class Omegle(object):
           if event[0] == "strangerDisconnected":
             self.connected = False
             self.emit("debug", "Stranger disconnected.")
+            self.emit("connection_state", False)
             return
           elif event[0] in ("typing", "stoppedTyping"):
             self.emit("typing", event[0] == "typing")

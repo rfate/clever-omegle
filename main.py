@@ -1,9 +1,23 @@
 #!/usr/bin/env python
 import argparse
-import time
+from time import gmtime, strftime
+import curses
+import curses.textpad
 import re
 import cleverbot
 from omegle import Omegle
+
+stdscr = curses.initscr()
+curses.noecho()
+curses.cbreak()
+stdscr.keypad(1)
+curses.curs_set(0) # hide caret
+size = stdscr.getmaxyx()
+log_window = curses.newwin(size[0]-2, size[1], 0, 0)
+input_window = curses.newwin(1, size[1], size[0]-1, 0)
+text_pad = curses.textpad.Textbox(input_window)
+
+buf = []
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverbot'", default="captain howdy")
@@ -41,10 +55,17 @@ quirks = [
   ],
 ]
 
-def log(val):
-  print val
-  with open("log.txt", 'a') as f:
-    f.write("%f: %s\n" % (time.time(), val))
+def log(message):
+  time = strftime("%H:%M:%S", gmtime())
+  buf.append("[%s] %s\n" % (time, message))
+  if len(buf) >= log_window.getmaxyx()[0]:
+    buf.pop(0)
+  update()
+
+def update():
+  for i, message in enumerate(buf):
+    log_window.addstr(i, 0, message)
+  log_window.refresh()
 
 def quirkify(message):
   for quirk in quirks[args.quirkset]:
@@ -53,12 +74,6 @@ def quirkify(message):
     else:
       message = re.sub(quirk[0], quirk[1], message)
   return message
-
-if args.test:
-  print quirkify("Hello. :) :( (: ): :D D:")
-  print quirkify("Hello... :P :3 :O")
-  print quirkify("lol lolololol hehehehe hahahaha")
-  exit()
 
 try:
   while True:
@@ -73,10 +88,14 @@ try:
         print "Stranger %s typing." % ("started" if ev else "stopped")
 
     def connected(ev):
-      if args.intro:
+      if ev and args.intro:
         send(args.intro)
 
     def send(message):
+      if message.startswith("/next"):
+        om.disconnect()
+        return
+
       message = quirkify(message)
       log("You: " + message)
       om.send_msg(message)
@@ -86,13 +105,10 @@ try:
         print "DEBUG: " + ev
 
     def recv(ev):
+      is_typing = False
       log("Stranger: " + ev)
       while True:
         try:
-          if is_typing:
-            print "SHOULD STOP!"
-            continue
-
           om.send_typing_event()
           resp = cb.Ask(ev)
           resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
@@ -101,15 +117,24 @@ try:
           print "DEBUG: cleverbot.ServerFullError"
           continue
 
-      if om.connected and len(resp) > 0:
+      if om.connected and len(resp) > 0 and not is_typing and not args.test:
         send(resp)
 
-    om.connect("connected", connected)
+    om.connect("connection_state", connected)
     om.connect("message-received", recv)
     om.connect("typing", typing)
     om.connect("debug", debug)
 
-    om.start()
+    om.start(threaded = True)
+
+    while om.connected:
+      inputted = text_pad.edit()
+      if len(inputted) > 0 and om.connected:
+        send(inputted)
+        input_window.clear()
+
     log("*****Conversation End*****")
 except KeyboardInterrupt:
+  curses.nocbreak(); stdscr.keypad(0); curses.echo()
+  curses.endwin()
   exit()
