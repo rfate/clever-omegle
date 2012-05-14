@@ -25,6 +25,7 @@ parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverb
 parser.add_argument("-d", "--debug", help="enable debug messages", action="store_true")
 parser.add_argument("-i", "--intro", help="message to be sent upon connecting")
 parser.add_argument("-q", "--quirkset", help="set of typing quirks to use", type=int, default=0)
+parser.add_argument("-c", "--disable-cleverbot", help="disables cleverbot", action="store_true")
 
 parser.add_argument("-t", "--test", help="whatever wacky shit I'm trying to do at the moment", action="store_true")
 args = parser.parse_args()
@@ -86,16 +87,24 @@ def quirkify(message):
       message = re.sub(quirk[0], quirk[1], message)
   return message
 
-def clear_input():
-  input_window.clear()
-  input_window.addstr(0, 0, "> ")
-
 try:
   while True:
     log("*****Conversation Start*****")
     cb = cleverbot.Session()
     om = Omegle()
     is_typing = False
+
+    def handle_command(command):
+      command = command.split(' ')
+      if   command[0] == 'next' or command[0] == 'n':
+        om.disconnect()
+      elif command[0] == 'quirks' or command[0] == 'q':
+        args.quirkset = int(command[1])
+      elif command[0] == 'clever' or command[0] == 'c':
+        args.disable_cleverbot = not args.disable_cleverbot
+        log("Cleverbot %s" % ('disabled' if args.disable_cleverbot else 'enabled'))
+      else: # default
+        log("Command '%s' not found!" % command)
 
     def typing(ev):
       is_typing = ev
@@ -111,8 +120,8 @@ try:
         send(args.intro)
 
     def send(message):
-      if message.startswith("/next"):
-        om.disconnect()
+      if message.startswith("/"):
+        handle_command(message[1:])
         return
 
       message = quirkify(message)
@@ -126,17 +135,18 @@ try:
     def recv(ev):
       typing(False)
       log("Stranger: " + ev)
-      while True:
-        try:
-          om.send_typing_event()
-          resp = cb.Ask(ev)
-          resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
-          break
-        except cleverbot.ServerFullError:
-          continue
+      if not args.disable_cleverbot:
+        while True:
+          try:
+            om.send_typing_event()
+            resp = cb.Ask(ev)
+            resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
+            break
+          except cleverbot.ServerFullError:
+            continue
 
-      if om.connected and len(resp) > 0 and not is_typing and not args.test:
-        send(resp)
+        if om.connected and len(resp) > 0 and not is_typing and not args.test:
+          send(resp)
 
     om.connect("connection_state", connected)
     om.connect("message-received", recv)
