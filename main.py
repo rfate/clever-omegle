@@ -14,6 +14,7 @@ stdscr.keypad(1)
 curses.curs_set(0) # hide caret
 size = stdscr.getmaxyx()
 log_window = curses.newwin(size[0]-2, size[1], 0, 0)
+note_window = curses.newwin(1, size[1], size[0]-2, 0)
 input_window = curses.newwin(1, size[1], size[0]-1, 0)
 text_pad = curses.textpad.Textbox(input_window)
 
@@ -55,6 +56,12 @@ quirks = [
   ],
 ]
 
+def clean_curses():
+  curses.nocbreak()
+  stdscr.keypad(0)
+  curses.echo()
+  curses.endwin()
+
 def log(message):
   time = strftime("%H:%M:%S", gmtime())
   buf.append("[%s] %s\n" % (time, message))
@@ -75,6 +82,10 @@ def quirkify(message):
       message = re.sub(quirk[0], quirk[1], message)
   return message
 
+def clear_input():
+  input_window.clear()
+  input_window.addstr(0, 0, "> ")
+
 try:
   while True:
     log("*****Conversation Start*****")
@@ -84,10 +95,14 @@ try:
 
     def typing(ev):
       is_typing = ev
-      if args.show_typing:
-        print "Stranger %s typing." % ("started" if ev else "stopped")
+      if ev:
+        note_window.addstr(0, 0, "Stranger is typing...")
+      else:
+        note_window.clear()
+      note_window.refresh()
 
     def connected(ev):
+      typing(False)
       if ev and args.intro:
         send(args.intro)
 
@@ -102,10 +117,10 @@ try:
 
     def debug(ev):
       if args.debug:
-        print "DEBUG: " + ev
+        log("DEBUG: " + ev)
 
     def recv(ev):
-      is_typing = False
+      typing(False)
       log("Stranger: " + ev)
       while True:
         try:
@@ -114,7 +129,6 @@ try:
           resp = re.sub("cleverbot", args.name, resp, re.IGNORECASE)
           break
         except cleverbot.ServerFullError:
-          print "DEBUG: cleverbot.ServerFullError"
           continue
 
       if om.connected and len(resp) > 0 and not is_typing and not args.test:
@@ -135,6 +149,8 @@ try:
 
     log("*****Conversation End*****")
 except KeyboardInterrupt:
-  curses.nocbreak(); stdscr.keypad(0); curses.echo()
-  curses.endwin()
+  clean_curses()
   exit()
+except:
+  clean_curses()
+  raise
