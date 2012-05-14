@@ -64,7 +64,12 @@ def clean_curses():
 
 def log(message):
   time = strftime("%H:%M:%S", gmtime())
-  buf.append("[%s] %s\n" % (time, message))
+  line = "[%s] %s\n" % (time, message)
+  with open("log.txt", 'a') as f:
+    f.write(line)
+
+  buf.append(line)
+
   if len(buf) >= log_window.getmaxyx()[0]:
     buf.pop(0)
   update()
