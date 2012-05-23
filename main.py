@@ -37,6 +37,7 @@ def clean_curses():
   stdscr.keypad(0)
   curses.echo()
   curses.endwin()
+  curses.curs_set(1)
 
 def log(message):
   time = strftime("%H:%M:%S", gmtime())
@@ -47,9 +48,10 @@ def log(message):
   if conf.disable_curses:
     print line
   else:
-    chat_buffer.append(line)
+    for l in [line[i:i+size[1]] for i in range(0, len(line), size[1])]:
+      chat_buffer.append(l)
 
-    if len(chat_buffer) >= log_window.getmaxyx()[0]:
+    while len(chat_buffer) >= log_window.getmaxyx()[0]:
       chat_buffer.pop(0)
     update()
 

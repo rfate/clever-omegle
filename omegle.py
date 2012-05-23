@@ -4,7 +4,7 @@ import json
 import Queue
 import thread
 
-class Omegle(object):
+class Omegle:
 
   def __init__(self):
     self.event_queue = Queue.Queue()
