@@ -5,6 +5,7 @@ import re
 import cleverbot
 from omegle import Omegle
 from quirks import quirkify
+import thread
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="name to replace occurences of 'cleverbot'", default="captain howdy")
@@ -134,16 +135,27 @@ try:
 
     om.start(threaded = True)
 
-    while om.connected:
+    getting_input = False
+
+    def get_input(om):
       if conf.disable_curses:
         inputted = str(raw_input("> "))
       else:
         inputted = text_pad.edit()
       if len(inputted) > 0 and om.connected:
-        send(inputted)
+        thread.start_new_thread(send, (inputted,))
         if not conf.disable_curses:
           input_window.clear()
+      global getting_input
+      getting_input = False
 
+    while om.connected:
+      if not getting_input:
+        getting_input = True
+        thread.start_new_thread(get_input, (om,))
+
+    if not conf.disable_curses:
+      input_window.clear()
     log("*****Conversation End*****")
 except KeyboardInterrupt:
   if not conf.disable_curses:
